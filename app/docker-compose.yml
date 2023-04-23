@@ -1,26 +1,29 @@
 version: "3.8"
 services:
-  flask_app:
-    container_name: flask_app
-    image: codeslp-flask_live_app:1.0.0
-    build: .
-    ports:
-      - "5000:5000"
-    environment:
-      - DB_URL=postgresql://postgres:postgres@flask_db:5432/postgres
-    depends_on:
-      - flask_db
-  flask_db:
-    container_name: flask_db
-    image: postgres:12
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_PASSWORD=admin123
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
+  web:
+    build: ./app
+    image: 672051635952.dkr.ecr.us-east-2.amazonaws.com/workshop2:workshop2_web ### REPLACE wih actual ECR URI
+    command: gunicorn nc_tutorials.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - pgdata:/var/lib/postgresql/data
-
+      - ./app/:/usr/src/app/
+      - static_volume:/usr/src/app/static
+    expose:
+      - 8000
+    environment:
+      - DB_NAME=nc_tutorials_db
+      - DB_USER=postgres REPLACE   #########
+      - DB_PASSWORD=admin123 REPLACE   ##########
+      - DB_HOST=nctutorials.c5r6ke6mwmhp.us-east-2.rds.amazonaws.com REPLACE ### replace with actual DB host 
+      - DB_PORT=5432
+      - DATABASE=postgres
+  nginx:
+    build: ./nginx
+    image: 672051635952.dkr.ecr.us-east-2.amazonaws.com/workshop2:workshop2_nginx ## REPLACE with actual ECR URI
+    volumes:
+      - static_volume:/usr/src/app/static REMOVE, NOT USING STATIC CONTENT
+    ports:
+      - 8000:80
+    depends_on:
+      - web
 volumes:
-  pgdata: {}
+  static_volume:
